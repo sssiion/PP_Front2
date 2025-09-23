@@ -27,8 +27,10 @@ interface SidebarProps {
     setSearchedLocation: (location: naver.maps.LatLng) => void;
     selectedCategory: string | null;
     onCategoryChange: (category: string | null) => void;
-    dateTime: Date | null;
-    onDateTimeChange: (date: Date | null) => void; // Date 또는 null을 받을 수 있도록 변경
+    date: Date | null;
+    onDateChange: (date: Date | null) => void;
+    time: string;
+    onTimeChange: (time: string) => void;
     onQueryChange: (query: string) => void;
     query: string;
 }
@@ -49,8 +51,10 @@ export function Sidebar({
                             setSearchedLocation,
                             selectedCategory,
                             onCategoryChange,
-                            dateTime,
-                            onDateTimeChange,
+                            date,       // dateTime -> date
+                            onDateChange, // onDateTimeChange -> onDateChange
+                            time,
+                            onTimeChange,
                             onQueryChange,
                             query
                         }: SidebarProps) {
@@ -59,53 +63,44 @@ export function Sidebar({
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
 
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+    const months = Array.from({ length: 12 }, (_, i) => i);
+
     // 1. 달력 팝업의 열림/닫힘 상태를 관리할 state 추가
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     // 1. 달력이 현재 보여주는 월을 제어하기 위한 새로운 상태
-    const [displayMonth, setDisplayMonth] = useState<Date>(dateTime || new Date());
+    const [displayMonth, setDisplayMonth] = useState<Date>(date  || new Date());
+
+    const datePickerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (dateTime) {
-            setDisplayMonth(dateTime);
+        if (date) {
+            setDisplayMonth(date);
         }
-    }, [dateTime]);
+    }, [date]);
 
     // 사용자가 날짜를 선택하면, displayMonth도 함께 업데이트
     const handleDateSelect = (selectedDate: Date | undefined) => {
-        console.log("✅ 1. 날짜 클릭! handleDateSelect 함수 시작.");
-        console.log("   - 전달받은 날짜:", selectedDate);
-
-        try {
-            console.log("▶️ 2. 부모의 onDateTimeChange 함수를 호출 시도...");
-            onDateTimeChange(selectedDate || null);
-            console.log("✅ 3. onDateTimeChange 호출 성공!");
-        } catch (e) {
-            console.error("❌ 3-ERROR: onDateTimeChange 함수에서 에러 발생!", e);
+        onDateChange(selectedDate || null);
+        if (selectedDate) {
+            setDisplayMonth(selectedDate);
         }
-
-        try {
-            if (selectedDate) {
-                console.log("▶️ 4. 달력의 displayMonth 상태 변경 시도...");
-                setDisplayMonth(selectedDate);
-                console.log("✅ 5. displayMonth 변경 성공!");
-            }
-        } catch (e) {
-            console.error("❌ 5-ERROR: setDisplayMonth 함수에서 에러 발생!", e);
-        }
-
-        try {
-            console.log("▶️ 6. 팝업 닫기(setIsCalendarOpen) 함수 호출 시도...");
-            setIsCalendarOpen(false);
-            console.log("✅ 7. 팝업 닫기 성공!");
-        } catch (e) {
-            console.error("❌ 7-ERROR: setIsCalendarOpen 함수에서 에러 발생!", e);
-        }
+        setIsCalendarOpen(false);
     };
 
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
-    const months = Array.from({ length: 12 }, (_, i) => i);
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+                setIsCalendarOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [datePickerRef]);
 
     // 자동 완성 검색 로직 (디바운싱 적용)
     useEffect(() => {
@@ -263,63 +258,44 @@ export function Sidebar({
             </div>
 
             <div className="flex gap-2">
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant={"outline"}
-                                className={`flex-1 justify-start text-left font-normal h-11 ${!dateTime && "text-muted-foreground"}`}>
-                            <CalendarIcon className="mr-2 h-4 w-4"/>
-                            {/* dateTime이 있으면 그 값을, 없으면 현재 날짜를 표시 */}
-                            {dateTime ? format(dateTime, "yyyy-MM-dd") : <span>날짜 선택</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        {/*/!* 2. 연도와 월 선택 Select 컴포넌트를 Popover 안에 직접 추가 *!/*/}
-                        {/*<div className="flex justify-center gap-2 p-2 border-b">*/}
-                        {/*    <Select*/}
-                        {/*        value={String(getYear(displayMonth))}*/}
-                        {/*        onValueChange={(value) => setDisplayMonth(setYear(displayMonth, Number(value)))}*/}
-                        {/*    >*/}
-                        {/*        <SelectTrigger className="w-[100px] h-8 focus:ring-0"><SelectValue /></SelectTrigger>*/}
-                        {/*        <SelectContent>*/}
-                        {/*            {years.map((year) => <SelectItem key={year} value={String(year)}>{year}년</SelectItem>)}*/}
-                        {/*        </SelectContent>*/}
-                        {/*    </Select>*/}
-                        {/*    <Select*/}
-                        {/*        value={String(getMonth(displayMonth))}*/}
-                        {/*        onValueChange={(value) => setDisplayMonth(setMonth(displayMonth, Number(value)))}*/}
-                        {/*    >*/}
-                        {/*        <SelectTrigger className="w-[80px] h-8 focus:ring-0"><SelectValue /></SelectTrigger>*/}
-                        {/*        <SelectContent>*/}
-                        {/*            {months.map((month) => <SelectItem key={month} value={String(month)}>{month + 1}월</SelectItem>)}*/}
-                        {/*        </SelectContent>*/}
-                        {/*    </Select>*/}
-                        {/*</div>*/}
-                        <Calendar
-                            mode="single"
-                            required={false}
-                            selected={dateTime || undefined}
-                            onSelect={handleDateSelect}
-                            locale={ko}
-                            // 3. 외부 상태(displayMonth)로 달력이 보여주는 월을 제어
-                            // month={displayMonth}
-                            // onMonthChange={setDisplayMonth}
-                            initialFocus
-
-                            onDayClick={(day) => alert(`[테스트] ${day.toLocaleDateString()} 클릭됨`)}
-                        />
-                    </PopoverContent>
-                </Popover>
+                <div className="relative" ref={datePickerRef}>
+                    {/*<Button*/}
+                    {/*    variant={"outline"}*/}
+                    {/*    className={`w-full justify-start text-left font-normal h-11 ${!date && "text-muted-foreground"}`}*/}
+                    {/*    onClick={() => setIsCalendarOpen(!isCalendarOpen)} // 클릭 시 달력 열고 닫기*/}
+                    {/*    >*/}
+                    {/*    <CalendarIcon className="mr-2 h-4 w-4"/>*/}
+                    {/*    {date ? format(date, "yyyy-MM-dd") : <span>날짜 선택</span>}*/}
+                    {/*</Button>*/}
+                    {isCalendarOpen && (
+                        <Card className="absolute top-full mt-2 w-auto p-0 z-30">
+                            <div className="flex-1 justify-center gap-2 p-2 border-b">
+                                <Select value={String(getYear(displayMonth))} onValueChange={(value) => setDisplayMonth(setYear(displayMonth, Number(value)))}>
+                                    <SelectTrigger className="w-[100px] h-8 focus:ring-0"><SelectValue /></SelectTrigger>
+                                    <SelectContent>{years.map((year) => <SelectItem key={year} value={String(year)}>{year}년</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select value={String(getMonth(displayMonth))} onValueChange={(value) => setDisplayMonth(setMonth(displayMonth, Number(value)))}>
+                                    <SelectTrigger className="w-[80px] h-8 focus:ring-0"><SelectValue /></SelectTrigger>
+                                    <SelectContent>{months.map((month) => <SelectItem key={month} value={String(month)}>{month + 1}월</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                            <Calendar
+                                mode="single"
+                                selected={date || undefined}
+                                onSelect={handleDateSelect}
+                                locale={ko}
+                                month={displayMonth}
+                                onMonthChange={setDisplayMonth}
+                                initialFocus
+                            />
+                        </Card>
+                    )}
+                </div>
                 <Input
                     type="time"
                     className="flex-1 h-11"
-                    value={dateTime ? format(dateTime, "HH:mm") : ""}
-                    onChange={(e) => {
-                        const [hours, minutes] = e.target.value.split(':');
-                        // dateTime이 null이었을 경우를 대비해 new Date()로 초기화
-                        const newDate = dateTime ? new Date(dateTime) : new Date();
-                        newDate.setHours(Number(hours), Number(minutes));
-                        onDateTimeChange(newDate);
-                    }}
+                    value={time}
+                    onChange={(e) => onTimeChange(e.target.value)}
                 />
             </div>
 
