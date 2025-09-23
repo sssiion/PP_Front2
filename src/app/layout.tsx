@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
     title: "지도 애플리케이션",
@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="ko">
-        <body className={inter.className}>
+        <body className={inter.variable}>
             {children}
             <Script
                 strategy="beforeInteractive"

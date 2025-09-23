@@ -83,6 +83,8 @@ export function MapContainer({ searchedLocation, recommendedPlaces }: MapContain
 
     }, [recommendedPlaces]);
 
+
+
     return (
         <section className="flex-1 h-full relative">
             <div ref={mapElement} className="w-full h-full" />
