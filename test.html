@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODsay API 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #apiKey {
+            width: 400px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            white-space: pre-wrap; /* JSON 결과를 보기 좋게 표시하기 위함 */
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+<h1>ODsay 버스 노선 정보 API 테스트</h1>
+
+<div>
+    <label for="apiKey">API 키 입력: </label>
+    <input type="text" id="apiKey" placeholder="ODsay에서 발급받은 API 키를 입력하세요">
+    <button onclick="searchBusLaneAJAX()">API 호출</button>
+</div>
+
+<h2>API 응답 결과</h2>
+<pre id="result">이곳에 결과가 표시됩니다.</pre>
+
+<script>
+    function searchBusLaneAJAX() {
+        // 1. 입력 필드에서 API 키 값을 가져옵니다.
+        var apiKey = document.getElementById('apiKey').value;
+        var resultDiv = document.getElementById('result');
+
+        // API 키가 입력되었는지 확인합니다.
+        if (!apiKey) {
+            resultDiv.textContent = 'API 키를 먼저 입력해주세요.';
+            return;
+        }
+
+        // 2. API 요청을 보낼 URL을 만듭니다.
+        // URL 인코딩을 통해 API 키에 특수문자가 있어도 안전하게 전달되도록 합니다.
+        var url = "https://api.odsay.com/v1/api/searchBusLane?busNo=10&CID=1000&apiKey=" + encodeURIComponent(apiKey);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.send();
+
+        // 요청 상태가 변경될 때마다 호출될 함수를 설정합니다.
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) { // 4: 요청 완료
+                resultDiv.textContent = ''; // 이전 결과 초기화
+                if (xhr.status == 200) { // 200: 성공
+                    // 3. 성공 시, 받아온 JSON 텍스트를 보기 좋게 포맷팅하여 출력합니다.
+                    var jsonResponse = JSON.parse(xhr.responseText);
+                    resultDiv.textContent = JSON.stringify(jsonResponse, null, 2);
+                } else {
+                    // 4. 에러 발생 시, 상태 코드와 메시지를 출력합니다.
+                    resultDiv.textContent = "에러 발생!\n";
+                    resultDiv.textContent += "상태 코드: " + xhr.status + "\n";
+                    resultDiv.textContent += "응답 내용: " + xhr.responseText;
+                }
+            } else {
+                resultDiv.textContent = "API 서버로부터 응답을 기다리는 중...";
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

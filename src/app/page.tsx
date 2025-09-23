@@ -86,7 +86,8 @@ export default function Home() {
 
     // 백엔드 API 호출 URL 구성 (예시)
     const { y: lat, x: lon } = locationToUse;
-    const url = `http://localhost:8080/api/recommend/list3?lat=${lat}&lon=${lon}&time=13:30:00&windowMin=15&radius=8000&pageSize=200&type=${contentTypeId}`;
+    const currentTime = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const url = `/api/recommend/list3?lat=${lat}&lon=${lon}&time=${currentTime}&windowMin=15&radius=8000&pageSize=200&type=${contentTypeId}`;
 
     // 주석: 아래는 실제 백엔드 API를 호출하는 부분입니다.
     // API 주소, 파라미터 등을 수정하려면 이 로직을 변경하면 됩니다.
@@ -126,6 +127,7 @@ export default function Home() {
             searchedLocation={searchedLocation}
             recommendedPlaces={recommendedPlaces}
             selectedRoute={directionsResult?.[selectedRouteIndex]}
+            directionsDestination={directionsDestination}
         />
 
         {/* 오른쪽 추천 장소 사이드바 */}

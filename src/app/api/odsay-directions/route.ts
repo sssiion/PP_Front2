@@ -17,8 +17,16 @@ export async function GET(request: NextRequest) {
   }
 
   // --- 주석: ODsay API 키 설정 --- //
-  // 여기에 ODsay에서 발급받은 API 키를 입력하세요.
-  const ODSAY_API_KEY = "bc1Ix0ZQVOg7B8PQ0HYrmVCo9fHw7rRGA0FdeI8ZCGo";
+  // .env.local 파일에서 ODsay API 키를 불러옵니다.
+  const ODSAY_API_KEY = process.env.ODSAY_API_KEY;
+
+  if (!ODSAY_API_KEY) {
+    console.error("ODsay API 키가 설정되지 않았습니다.");
+    return NextResponse.json(
+        { error: "서버 설정 오류: API 키가 없습니다." },
+        { status: 500 }
+    );
+  }
 
   // API 키에 포함된 특수문자(+, &, / 등)를 안전하게 전달하기 위해 인코딩합니다.
   const encodedApiKey = encodeURIComponent(ODSAY_API_KEY);
