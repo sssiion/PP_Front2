@@ -90,28 +90,36 @@ export default function Home() {
         // 목적지와 로딩 상태 업데이트
         setDirectionsDestination(destination);
         setIsLoading(true);
+        setSelectedRoute(null);
 
         const sx = searchedLocation.lng(); // 출발지 경도
         const sy = searchedLocation.lat();  // 출발지 위도
         const ex = destination.mapX;     // 도착지 경도
         const ey = destination.mapY;     // 도착지 위도
 
-        // 여기에 실제 ODsay API 호출 코드를 작성합니다.
-        // 예시: const apiUrl = `https://api.odsay.com/v1/api/searchPubTransPath?SX=${sx}&SY=${sy}&EX=${ex}&EY=${ey}&apiKey=...`;
+        const apiKey = encodeURIComponent('YOUR_ODSAY_API_KEY');
+        const apiUrl = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${sx}&SY=${sy}&EX=${ex}&EY=${ey}&apiKey=${apiKey}`;
+
         try {
-            // const response = await fetch(apiUrl);
-            // const data = await response.json();
-            // setSelectedRoute(data.result); // 실제 API 응답 구조에 맞게 수정
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            setSelectedRoute(data.result); // 실제 API 응답 구조에 맞게 수정
 
-            // --- 임시 더미 데이터 ---
-            // 실제 API 연동 전 테스트를 위한 가짜 경로 데이터입니다.
-            const dummyRouteData = { /* ... ODsay API 응답과 유사한 구조의 가짜 데이터 ... */ };
-            setSelectedRoute(dummyRouteData as OdsayRoute);
-            // --- 임시 더미 데이터 끝 ---
-
+            if (data.error) {
+                // API가 에러를 반환한 경우
+                console.error("ODsay API Error:", data.error.message);
+                alert(`경로를 찾을 수 없습니다: ${data.error.message}`);
+                setSelectedRoute(null);
+                setDirectionsDestination(null);
+            } else {
+                // 성공한 경우, 첫 번째 추천 경로를 상태에 저장
+                setSelectedRoute(data.result.path[0]);
+            }
         } catch (error) {
             console.error("길찾기 API 호출 실패:", error);
             alert("경로를 찾는 데 실패했습니다.");
+            setSelectedRoute(null);
+            setDirectionsDestination(null);
         } finally {
             setIsLoading(false);
         }
