@@ -3,17 +3,19 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import { X, ImageOff, MapPin } from "lucide-react"; // 닫기 아이콘
+import Image from "next/image"; // 닫기 아이콘
+import { X, ImageOff, MapPin } from "lucide-react";
+import { Spot } from "@/app/page";
 
 interface RecsSidebarProps {
     onClose: () => void;
-    places: any[];// 닫기 함수를 props로 받음
+    places: Spot[]; // 2. any[] 대신 정확한 Spot[] 타입 사용
+    isLoading: boolean; // 3. 로딩 상태를 받을 prop 추가
 }
 
 // 서버에서 받아오는 데이터의 타입(모양)을 정의합니다.
 
-export function RecsSidebar({ onClose, places }: RecsSidebarProps) {
+export function RecsSidebar({ onClose, places, isLoading }: RecsSidebarProps) {
     return (
         <aside className="absolute top-0 right-0 w-[400px] h-full bg-white shadow-2xl z-20 p-6 flex flex-col transform transition-transform duration-300 ease-in-out">
             <div className="flex justify-between items-center mb-4">
@@ -23,9 +25,16 @@ export function RecsSidebar({ onClose, places }: RecsSidebarProps) {
                 </Button>
             </div>
 
+            {/* 4. 로딩 및 결과 표시에 대한 UI 로직 수정 */}
             <div className="flex-1 overflow-y-auto -mr-6 pr-6">
-                {places.length === 0 ? (
-                    <p>추천 장소가 없습니다.</p>
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-gray-500 animate-pulse">목록을 불러오는 중...</p>
+                    </div>
+                ) : places.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-gray-500">추천 장소가 없습니다.</p>
+                    </div>
                 ) : (
                     <div className="space-y-3">
                         {places.map((spot) => (

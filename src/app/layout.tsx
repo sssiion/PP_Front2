@@ -22,7 +22,7 @@ export default function RootLayout({
             <Script
                 strategy="beforeInteractive"
                 type="text/javascript"
-                src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gbw3otoupx&language=en`}
+                src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gbw3otoupx&language=en&submodules=geocoding`}
             />
         </body>
         </html>

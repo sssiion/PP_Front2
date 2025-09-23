@@ -25,7 +25,7 @@ export function RecommendationPanel() {
             try {
                 setLoading(true);
                 // 사용자님이 제공해주신 URL (실제로는 동적으로 위도, 경도 등을 받아와야 합니다)
-                const apiUrl = "http://localhost:8080/api/recommend/list3?lat=37.5557&lon=126.9730&time=13:30:00";
+                const apiUrl = "http://localhost:8080/api/recommend/lat=37.5557&lon=126.9730&time=13:30:00";
 
                 const response = await fetch(apiUrl);
                 if (!response.ok) {
