@@ -26,19 +26,20 @@ export const categories = [
 ];
 
 interface SidebarProps {
+    query: string;
+    setQuery: (query: string) => void;
     setSearchedLocation: (location: naver.maps.LatLng) => void;
-    onCategorySelect: (contentTypeId: number) => void;
+    onCategorySelect: (contentTypeId: number, locationOverride?: naver.maps.LatLng) => void;
     selectedCategoryId: number | null;
 }
 
-export function Sidebar({ setSearchedLocation, onCategorySelect, selectedCategoryId }: SidebarProps) {
-    const [query, setQuery] = useState("");
+export function Sidebar({ query, setQuery, setSearchedLocation, onCategorySelect, selectedCategoryId }: SidebarProps) {
     const [suggestions, setSuggestions] = useState<NaverAddressItem[]>([]);
     const [recentLocationSearches, setRecentLocationSearches] = useState<string[]>([]);
     const [recentCategorySearches, setRecentCategorySearches] = useState<string[]>([]);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-    const performSearch = (searchQuery: string, callback?: () => void) => {
+    const performSearch = (searchQuery: string, callback?: (newLocation: naver.maps.LatLng) => void) => {
         if (!searchQuery || !window.naver || !window.naver.maps || !window.naver.maps.Service) return;
 
         setQuery(searchQuery); // 검색창의 텍스트도 업데이트
@@ -50,7 +51,7 @@ export function Sidebar({ setSearchedLocation, onCategorySelect, selectedCategor
                 setSearchedLocation(location);
                 setRecentLocationSearches(prev => [searchQuery, ...prev.filter(item => item !== searchQuery)].slice(0, 5));
                 setSuggestions([]);
-                callback?.(); // 콜백 함수가 있으면 실행
+                callback?.(location); // 콜백 함수에 새로운 location 객체를 전달
             } else {
                 alert(`'${searchQuery}'에 대한 검색 결과가 없습니다.`);
             }
@@ -120,9 +121,9 @@ export function Sidebar({ setSearchedLocation, onCategorySelect, selectedCategor
             return;
         }
 
-        // 2. 지역 검색을 먼저 실행하고, 성공 콜백에서 카테고리 선택 실행
-        performSearch(locationQuery, () => {
-            onCategorySelect(foundCategory.id);
+        // 2. 지역 검색을 먼저 실행하고, 성공 콜백에서 받은 새 위치 정보로 카테고리 선택 실행
+        performSearch(locationQuery, (newLocation) => {
+            onCategorySelect(foundCategory.id, newLocation);
         });
     };
 
