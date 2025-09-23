@@ -82,6 +82,8 @@ export default function Home() {
     }, []);
 
     const handleRouteSearch = async (destination: Spot) => {
+        const apiKey = process.env.NEXT_PUBLIC_ODSAY_API_KEY;
+
         if (!searchedLocation) {
             alert("출발지가 설정되지 않았습니다.");
             return;
@@ -97,8 +99,8 @@ export default function Home() {
         const ex = destination.mapX;     // 도착지 경도
         const ey = destination.mapY;     // 도착지 위도
 
-        const apiKey = encodeURIComponent('YOUR_ODSAY_API_KEY');
-        const apiUrl = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${sx}&SY=${sy}&EX=${ex}&EY=${ey}&apiKey=${apiKey}`;
+        const encodedApiKey = encodeURIComponent(apiKey);
+        const apiUrl = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${sx}&SY=${sy}&EX=${ex}&EY=${ey}&apiKey=${encodedApiKey}`;
 
         try {
             const response = await fetch(apiUrl);
