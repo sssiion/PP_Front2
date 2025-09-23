@@ -31,12 +31,21 @@ const renderSubPath = (subPath: SubPath, index: number) => {
     const Icon = subPath.trafficType === 1 ? TrainFront : subPath.trafficType === 2 ? Bus : PersonStanding;
     const color = subPath.trafficType === 1 ? "text-blue-600" : subPath.trafficType === 2 ? "text-green-600" : "text-gray-600";
 
+    let title = "";
+    if (subPath.trafficType === 1) { // 지하철
+        title = `${subPath.lane?.[0]?.name} (${subPath.endName} 방면)`;
+    } else if (subPath.trafficType === 2) { // 버스
+        title = `${subPath.lane?.[0]?.busNo}번 버스`;
+    } else { // 도보
+        title = "도보";
+    }
+
     return (
         <div key={index} className="flex space-x-3 p-2 rounded-lg">
             <Icon className={`w-5 h-5 mt-1 ${color}`} />
             <div className="flex-grow border-l-2 pl-3 border-dotted">
                 <p className="font-semibold text-sm">
-                    {subPath.lane?.[0]?.name || (subPath.trafficType === 3 ? "도보" : "경로")}
+                    {title}
                 </p>
                 <p className="text-xs text-gray-500">
                     {subPath.startName} → {subPath.endName} ({subPath.sectionTime}분)
