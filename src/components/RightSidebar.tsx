@@ -1,27 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { X, Bus, TrainFront, PersonStanding } from "lucide-react";
+import { X, Bus, TrainFront, PersonStanding, Footprints } from "lucide-react";
 import { OdsayRoute, SubPath } from "@/types/odsay";
+import { Spot } from "@/types/spot";
 import Image from "next/image";
-
-// API 응답으로 받을 장소 데이터의 타입을 정의합니다.
-export interface Place {
-    title: string;
-    addr1: string;
-    firstimage: string;
-    mapy: string; // 위도
-    mapx: string; // 경도
-}
 
 interface RightSidebarProps {
     isOpen: boolean;
     onClose: () => void;
-    places: Place[];
+    spots: Spot[];
     isLoading: boolean;
-    onGetDirections: (place: Place) => void;
+    onGetDirections: (spot: Spot) => void;
     directionsResult: OdsayRoute[];
     isDirectionsLoading: boolean;
-    directionsDestination: Place | null;
+    directionsDestination: Spot | null;
     originName: string;
     onSelectRoute: (index: number) => void;
     selectedRouteIndex: number;
@@ -31,21 +23,12 @@ const renderSubPath = (subPath: SubPath, index: number) => {
     const Icon = subPath.trafficType === 1 ? TrainFront : subPath.trafficType === 2 ? Bus : PersonStanding;
     const color = subPath.trafficType === 1 ? "text-blue-600" : subPath.trafficType === 2 ? "text-green-600" : "text-gray-600";
 
-    let title = "";
-    if (subPath.trafficType === 1) { // 지하철
-        title = `${subPath.lane?.[0]?.name} (${subPath.endName} 방면)`;
-    } else if (subPath.trafficType === 2) { // 버스
-        title = `${subPath.lane?.[0]?.busNo}번 버스`;
-    } else { // 도보
-        title = "도보";
-    }
-
     return (
         <div key={index} className="flex space-x-3 p-2 rounded-lg">
             <Icon className={`w-5 h-5 mt-1 ${color}`} />
             <div className="flex-grow border-l-2 pl-3 border-dotted">
                 <p className="font-semibold text-sm">
-                    {title}
+                    {subPath.lane?.[0]?.name || (subPath.trafficType === 3 ? "도보" : "경로")}
                 </p>
                 <p className="text-xs text-gray-500">
                     {subPath.startName} → {subPath.endName} ({subPath.sectionTime}분)
@@ -55,7 +38,7 @@ const renderSubPath = (subPath: SubPath, index: number) => {
     );
 };
 
-export function RightSidebar({ isOpen, onClose, places, isLoading, onGetDirections, directionsResult, isDirectionsLoading, directionsDestination, originName, onSelectRoute, selectedRouteIndex }: RightSidebarProps) {
+export function RightSidebar({ isOpen, onClose, spots, isLoading, onGetDirections, directionsResult, isDirectionsLoading, directionsDestination, originName, onSelectRoute, selectedRouteIndex }: RightSidebarProps) {
     if (!isOpen) {
         return null;
     }
@@ -71,15 +54,11 @@ export function RightSidebar({ isOpen, onClose, places, isLoading, onGetDirectio
                 </Button>
             </div>
 
-            {/* 출발지 -> 도착지 표시 */}
-
             {directionsDestination && (
                 <h2 className="text-lg font-semibold text-gray-700 truncate pb-2 border-b mb-4">
                     {originName} → {directionsDestination?.title}
                 </h2>
             )}
-
-            {/* 이 아래에 다른 내용이 오겠죠? */}
 
             {directionsDestination ? (
                 <div className="flex flex-col space-y-2 flex-grow overflow-y-auto pt-2">
@@ -93,7 +72,6 @@ export function RightSidebar({ isOpen, onClose, places, isLoading, onGetDirectio
                                         <span>경로 {index + 1}</span>
                                         <span className="text-blue-600">{route.pathInfo.info.totalTime}분 소요</span>
                                     </div>
-                                    {/* 아코디언: 선택된 경로의 상세 정보 표시 */}
                                     {selectedRouteIndex === index && (
                                         <div className="border-t p-3 bg-gray-50/50">
                                             <div className="space-y-1">
@@ -114,20 +92,24 @@ export function RightSidebar({ isOpen, onClose, places, isLoading, onGetDirectio
                 </div>
             ) : (
                 <div className="overflow-y-auto">
-                    {places.length === 0 ? (
+                    {spots.length === 0 ? (
                         <p>추천 장소가 없습니다.</p>
                     ) : (
                         <div className="space-y-3">
-                            {places.map((place, index) => (
+                            {spots.map((spot, index) => (
                                 <Card key={index} className="p-3 hover:bg-gray-50 cursor-pointer">
                                     <div className="flex items-center space-x-3">
-                                        {place.firstimage && (
-                                            <Image src={place.firstimage} alt={place.title} width={64} height={64} className="w-16 h-16 rounded-md object-cover bg-gray-100" />
+                                        {spot.firstImage && (
+                                            <Image src={spot.firstImage} alt={spot.title} width={64} height={64} className="w-16 h-16 rounded-md object-cover bg-gray-100" />
                                         )}
-                                        <div>
-                                            <p className="font-semibold text-gray-800">{place.title}</p>
-                                            <p className="text-xs text-gray-500">{place.addr1}</p>
-                                            <Button variant="link" size="sm" className="p-0 h-auto text-blue-500" onClick={() => onGetDirections(place)}>대중교통 길찾기</Button>
+                                        <div className="flex-grow">
+                                            <p className="font-semibold text-gray-800">{spot.title}</p>
+                                            <p className="text-xs text-gray-500">{spot.addr1}</p>
+                                            <div className="flex items-center text-xs text-gray-500 mt-1">
+                                                <Footprints className="w-3 h-3 mr-1"/>
+                                                <span>{(spot.distanceMeters / 1000).toFixed(1)}km</span>
+                                            </div>
+                                            <Button variant="link" size="sm" className="p-0 h-auto text-blue-500" onClick={() => onGetDirections(spot)}>대중교통 길찾기</Button>
                                         </div>
                                     </div>
                                 </Card>

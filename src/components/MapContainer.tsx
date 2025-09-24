@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Place } from "./RightSidebar";
+import { Spot } from "@/types/spot";
 import { OdsayRoute } from "@/types/odsay";
 
 interface MapContainerProps {
     searchedLocation: naver.maps.LatLng | null;
-    recommendedPlaces: Place[];
+    recommendedSpots: Spot[];
     selectedRoute: OdsayRoute | null;
-    directionsDestination: Place | null;
+    directionsDestination: Spot | null;
 }
 
-export function MapContainer({ searchedLocation, recommendedPlaces, selectedRoute, directionsDestination }: MapContainerProps) {
+export function MapContainer({ searchedLocation, recommendedSpots, selectedRoute, directionsDestination }: MapContainerProps) {
     const mapElement = useRef<HTMLDivElement>(null);
     const mapRef = useRef<naver.maps.Map | null>(null);
     const mainMarkerRef = useRef<naver.maps.Marker | null>(null);
@@ -64,17 +64,17 @@ export function MapContainer({ searchedLocation, recommendedPlaces, selectedRout
 
         if (selectedRoute) return; // 경로 결과가 있을때는 추천 장소 마커를 숨김
 
-        if (recommendedPlaces.length > 0) {
-            const firstPlaceLocation = new naver.maps.LatLng(parseFloat(recommendedPlaces[0].mapy), parseFloat(recommendedPlaces[0].mapx));
-            const bounds = new naver.maps.LatLngBounds(firstPlaceLocation, firstPlaceLocation);
+        if (recommendedSpots.length > 0) {
+            const firstSpotLocation = new naver.maps.LatLng(recommendedSpots[0].mapY, recommendedSpots[0].mapX);
+            const bounds = new naver.maps.LatLngBounds(firstSpotLocation, firstSpotLocation);
 
             if (mainMarkerRef.current) {
                 bounds.extend(mainMarkerRef.current.getPosition());
             }
 
             const newMarkers: naver.maps.Marker[] = [];
-            recommendedPlaces.forEach(place => {
-                const location = new naver.maps.LatLng(parseFloat(place.mapy), parseFloat(place.mapx));
+            recommendedSpots.forEach(spot => {
+                const location = new naver.maps.LatLng(spot.mapY, spot.mapX);
                 const marker = new naver.maps.Marker({
                     position: location,
                     map: mapRef.current || undefined,
@@ -88,7 +88,7 @@ export function MapContainer({ searchedLocation, recommendedPlaces, selectedRout
             mapRef.current.fitBounds(bounds, { top: 100, right: 400, bottom: 100, left: 100 });
         }
 
-    }, [recommendedPlaces, selectedRoute]);
+    }, [recommendedSpots, selectedRoute]);
 
     const isValidLatLng = (lat: number, lng: number) => {
         if (!lat || !lng || lat === 0 || lng === 0) return false;
@@ -120,9 +120,11 @@ export function MapContainer({ searchedLocation, recommendedPlaces, selectedRout
         const newMarkers: naver.maps.Marker[] = [];
         const { pathInfo, geometry } = selectedRoute;
 
+        console.log("Creating destination marker with:", directionsDestination); // 디버깅 로그
+
         // --- 마커 생성 --- //
         const startLatLng = searchedLocation;
-        const destinationLatLng = new naver.maps.LatLng(parseFloat(directionsDestination.mapy), parseFloat(directionsDestination.mapx));
+        const destinationLatLng = new naver.maps.LatLng(Number(directionsDestination.mapY), Number(directionsDestination.mapX));
 
         newMarkers.push(new naver.maps.Marker({
             position: startLatLng,

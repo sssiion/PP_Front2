@@ -1,155 +1,161 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { MapContainer } from "@/components/MapContainer";
-import { RightSidebar, Place } from "@/components/RightSidebar";
-import { fetchMockRecommendations } from "@/lib/mockApi";
+import { RightSidebar } from "@/components/RightSidebar";
 import { OdsayRoute } from "@/types/odsay";
-
+import { Spot } from "@/types/spot";
+import { format } from "date-fns";
 
 export default function Home() {
-  // 애플리케이션의 핵심 상태들을 관리합니다.
-  const [searchedLocation, setSearchedLocation] = useState<naver.maps.LatLng | null>(null);
-  const [query, setQuery] = useState(""); // 검색어 상태 추가
-  const [recommendedPlaces, setRecommendedPlaces] = useState<Place[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [directionsDestination, setDirectionsDestination] = useState<Place | null>(null);
-  const [isDirectionsLoading, setIsDirectionsLoading] = useState(false);
-  const [directionsResult, setDirectionsResult] = useState<OdsayRoute[]>([]);
-  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+    // 애플리케이션의 핵심 상태들을 관리합니다.
+    const [query, setQuery] = useState("서울역");
+    const [searchedLocation, setSearchedLocation] = useState<naver.maps.LatLng | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 카테고리 기본 선택 없음
+    const [selectedTime, setSelectedTime] = useState<string>("13:30");
 
-  // 길찾기 목적지 선택 시 호출되는 함수
-  const handleGetDirections = async (place: Place) => {
-    if (!searchedLocation) {
-      alert("출발지가 설정되지 않았습니다. 먼저 지역을 검색해주세요.");
-      return;
-    }
-    setDirectionsDestination(place);
-    setIsDirectionsLoading(true);
-    setDirectionsResult([]);
-    setSelectedRouteIndex(0);
+    const [recommendedSpots, setRecommendedSpots] = useState<Spot[]>([]);
+    const [isRecsPanelOpen, setIsRecsPanelOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    try {
-      const url = `/api/odsay-directions?sx=${searchedLocation.x}&sy=${searchedLocation.y}&ex=${place.mapx}&ey=${place.mapy}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "경로 데이터를 가져오는 데 실패했습니다.");
-      }
-      const data = await response.json();
-      // 총 소요시간이 짧은 순으로 경로 정렬
-      data.sort((a: OdsayRoute, b: OdsayRoute) => a.pathInfo.info.totalTime - b.pathInfo.info.totalTime);
-      setDirectionsResult(data);
-    } catch (e) {
-      if (e instanceof Error) {
-        alert(e.message);
-      } else {
-        alert('경로를 가져오는 중 알 수 없는 오류가 발생했습니다.');
-      }
-      setDirectionsDestination(null);
-    } finally {
-      setIsDirectionsLoading(false);
-    }
-  };
+    const [directionsDestination, setDirectionsDestination] = useState<Spot | null>(null);
+    const [isDirectionsLoading, setIsDirectionsLoading] = useState(false);
+    const [directionsResult, setDirectionsResult] = useState<OdsayRoute[]>([]);
+    const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
 
-  const handleSelectRoute = (index: number) => {
-    setSelectedRouteIndex(index);
-  };
+    // 페이지 로드 시 기본 위치(서울역) 설정 및 검색 실행
+    useEffect(() => {
+        if (window.naver) {
+            const defaultLocation = new window.naver.maps.LatLng(37.5557, 126.9730);
+            setSearchedLocation(defaultLocation);
+        }
+    }, []);
 
+    const handleSearch = async () => {
+        if (!searchedLocation) {
+            alert("먼저 기준 위치를 검색해주세요.");
+            return;
+        }
 
-  const handleCategorySelect = async (contentTypeId: number, locationOverride: naver.maps.LatLng | null = null) => {
-    // 새로운 카테고리 검색 시, 기존 경로 결과 초기화
-    setDirectionsDestination(null);
-    setDirectionsResult([]);
+        setIsLoading(true);
+        setRecommendedSpots([]);
+        setIsRecsPanelOpen(true);
+        // 검색 시 기존 경로 결과 초기화
+        setDirectionsDestination(null);
+        setDirectionsResult([]);
 
-    const locationToUse = locationOverride || searchedLocation;
+        const finalDateTime = new Date(); // 항상 현재 날짜를 사용
+        if (selectedTime) {
+            const [hours, minutes] = selectedTime.split(':');
+            finalDateTime.setHours(Number(hours), Number(minutes), 0, 0);
+        }
 
-    if (!locationToUse) {
-      alert("먼저 지역을 검색해주세요.");
-      return;
-    }
+        const lat = searchedLocation.lat();
+        const lon = searchedLocation.lng();
+        const time = format(finalDateTime, "HH:mm:ss");
+        const categoryQuery = selectedCategory || "";
 
-    // 이미 선택된 카테고리를 다시 누르면 사이드바를 닫습니다.
-    if (selectedCategoryId === contentTypeId && isRightSidebarOpen) {
-        setIsRightSidebarOpen(false);
-        setSelectedCategoryId(null);
-        setRecommendedPlaces([]);
-        return;
-    }
+        const apiUrl = `https://pp-production-d014.up.railway.app/api/recommend/?lat=${lat}&lon=${lon}&time=${time}&type=${categoryQuery}&radius=8000`;
 
-    setIsLoading(true);
-    setIsRightSidebarOpen(true);
-    setSelectedCategoryId(contentTypeId);
+        console.log("Requesting API URL:", apiUrl); // 디버깅을 위한 로그 추가
 
-    // 백엔드 API 호출 URL 구성 (예시)
-    const { y: lat, x: lon } = locationToUse;
-    const currentTime = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    const url = `/api/recommend/list3?lat=${lat}&lon=${lon}&time=${currentTime}&windowMin=15&radius=8000&pageSize=200&type=${contentTypeId}`;
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data: Spot[] = await response.json();
+            console.log("서버로부터 받은 실제 데이터:", data);
 
-    // 주석: 아래는 실제 백엔드 API를 호출하는 부분입니다.
-    // API 주소, 파라미터 등을 수정하려면 이 로직을 변경하면 됩니다.
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
+            if (data.length === 0) {
+                alert("해당 조건에 맞는 추천 장소가 없습니다.");
+            }
 
-      // 주석: 백엔드 응답 구조에 따라 실제 데이터가 있는 경로를 지정합니다.
-      // 현재 구조는 { response: { body: { items: { item: [...] } } } } 입니다.
-      // 만약 구조가 변경되면 아래의 `data.response.body.items.item` 부분을 수정해야 합니다.
-      const places = data.response?.body?.items?.item || [];
-      setRecommendedPlaces(places);
+            data.sort((a, b) => a.distanceMeters - b.distanceMeters);
+            setRecommendedSpots(data);
+        } catch (error) {
+            console.error("추천 장소 검색 실패:", error);
+            alert("추천 장소를 불러오는 데 실패했습니다.");
+            setIsRecsPanelOpen(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    } catch {
-      alert("백엔드 연결에 실패하여 임시 데이터로 표시합니다.");
-      // 주석: API 연동 실패 시 Mock 데이터를 불러옵니다.
-      const places = await fetchMockRecommendations(contentTypeId);
-      setRecommendedPlaces(places);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const handleGetDirections = async (spot: Spot) => {
+        if (!searchedLocation) {
+            alert("출발지가 설정되지 않았습니다. 먼저 지역을 검색해주세요.");
+            return;
+        }
+        setDirectionsDestination(spot);
+        setIsDirectionsLoading(true);
+        setDirectionsResult([]);
+        setSelectedRouteIndex(0);
 
-  return (
-      <main className="relative flex h-screen w-screen">
-        {/* 왼쪽 사이드바 */}
-        <Sidebar
-            query={query}
-            setQuery={setQuery}
-            setSearchedLocation={setSearchedLocation}
-            onCategorySelect={handleCategorySelect}
-            selectedCategoryId={selectedCategoryId}
-        />
+        try {
+            const url = `/api/odsay-directions?sx=${searchedLocation.lng()}&sy=${searchedLocation.lat()}&ex=${spot.mapX}&ey=${spot.mapY}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "경로 데이터를 가져오는 데 실패했습니다.");
+            }
+            const data = await response.json();
+            data.sort((a: OdsayRoute, b: OdsayRoute) => a.pathInfo.info.totalTime - b.pathInfo.info.totalTime);
+            setDirectionsResult(data);
+        } catch (e) {
+            if (e instanceof Error) {
+                alert(e.message);
+            } else {
+                alert('경로를 가져오는 중 알 수 없는 오류가 발생했습니다.');
+            }
+            setDirectionsDestination(null);
+        } finally {
+            setIsDirectionsLoading(false);
+        }
+    };
 
-        {/* 중앙 지도 영역 */}
-        <MapContainer
-            searchedLocation={searchedLocation}
-            recommendedPlaces={recommendedPlaces}
-            selectedRoute={directionsResult?.[selectedRouteIndex]}
-            directionsDestination={directionsDestination}
-        />
+    const handleSelectRoute = (index: number) => {
+        setSelectedRouteIndex(index);
+    };
 
-        {/* 오른쪽 추천 장소 사이드바 */}
-        <RightSidebar
-            isOpen={isRightSidebarOpen}
-            onClose={() => {
-                setIsRightSidebarOpen(false);
-                setSelectedCategoryId(null);
-                setRecommendedPlaces([]);
-                setDirectionsDestination(null);
-                setDirectionsResult([]);
-            }}
-            places={recommendedPlaces}
-            isLoading={isLoading}
-            onGetDirections={handleGetDirections}
-            directionsResult={directionsResult}
-            isDirectionsLoading={isDirectionsLoading}
-            originName={query}
-            directionsDestination={directionsDestination}
-            onSelectRoute={handleSelectRoute}
-            selectedRouteIndex={selectedRouteIndex}
-        />
-      </main>
-  );
+    return (
+        <main className="relative flex h-screen w-screen">
+            <Sidebar
+                query={query}
+                setQuery={setQuery}
+                setSearchedLocation={setSearchedLocation}
+                onSearch={handleSearch}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                time={selectedTime}
+                onTimeChange={setSelectedTime}
+            />
+
+            <MapContainer
+                searchedLocation={searchedLocation}
+                recommendedSpots={recommendedSpots}
+                selectedRoute={directionsResult?.[selectedRouteIndex]}
+                directionsDestination={directionsDestination}
+            />
+
+            <RightSidebar
+                isOpen={isRecsPanelOpen}
+                onClose={() => {
+                    setIsRecsPanelOpen(false);
+                    setDirectionsDestination(null);
+                    setDirectionsResult([]);
+                }}
+                spots={recommendedSpots}
+                isLoading={isLoading}
+                onGetDirections={handleGetDirections}
+                directionsResult={directionsResult}
+                isDirectionsLoading={isDirectionsLoading}
+                originName={query}
+                directionsDestination={directionsDestination}
+                onSelectRoute={handleSelectRoute}
+                selectedRouteIndex={selectedRouteIndex}
+            />
+        </main>
+    );
 }
