@@ -193,8 +193,18 @@ export function MapContainer({ searchedLocation, recommendedSpots, selectedRoute
         directionsPolylineRef.current = newPolylines;
 
         // --- 지도 범위 조절 --- //
-        const bounds = new naver.maps.LatLngBounds(startLatLng, destinationLatLng);
-        mapRef.current?.fitBounds(bounds, { top: 100, right: 400, bottom: 100, left: 100 });
+        if (geometry?.boundary) {
+            // 대중교통 경로가 있으면 ODsay가 제공하는 경계 사용
+            const bounds = new naver.maps.LatLngBounds(
+                new naver.maps.LatLng(geometry.boundary.top, geometry.boundary.left),
+                new naver.maps.LatLng(geometry.boundary.bottom, geometry.boundary.right)
+            );
+            mapRef.current?.fitBounds(bounds, { top: 100, right: 400, bottom: 100, left: 100 });
+        } else {
+            // 도보 경로만 있으면 출발지/도착지 기준으로 경계 설정
+            const bounds = new naver.maps.LatLngBounds(startLatLng, destinationLatLng);
+            mapRef.current?.fitBounds(bounds, { top: 100, right: 400, bottom: 100, left: 100 });
+        }
 
     }, [selectedRoute, searchedLocation, directionsDestination]);
 
