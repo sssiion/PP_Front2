@@ -1,19 +1,23 @@
 export interface OdsayRoute {
     pathInfo: PathInfo;
-    geometry: Geometry;
+    geometry: Geometry | null;
 }
 
 export interface PathInfo {
     info: {
         totalTime: number;
         mapObj?: string;
-        // ... add other info properties if needed
+        payment: number;
+        busTransitCount: number;
+        subwayTransitCount: number;
+        totalDistance: number;
     };
     subPath: SubPath[];
 }
 
 export interface SubPath {
     trafficType: 1 | 2 | 3; // 1: 지하철, 2: 버스, 3: 도보
+    distance?: number;
     sectionTime: number;
     lane?: {
         name?: string;

@@ -51,7 +51,7 @@ export default function Home() {
                 } else {
                     reject(`'${queryToGeocode}'에 대한 검색 결과가 없습니다.`);
                 }
-            } catch (error) {
+} catch (_error) {
                 reject("좌표 변환 중 오류가 발생했습니다.");
             }
         });
